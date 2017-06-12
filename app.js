@@ -1,29 +1,147 @@
-var app = require ('express')(),
-server = require('http').createServer(app),
-io = require('socket.io').listen(server),
-fs = require('fs'),
-http = require('http'),
-record = require('node-record-lpcm16'),
-lame = require('lame')
+var express = require('express'),
+  bodyParser = require('body-parser'),
+  server = require('http').createServer(express),
+  io = require('socket.io').listen(server),
+  fs = require('fs'),
+  http = require('http'),
+  record = require('node-record-lpcm16'),
+  bodyParser = require('body-parser'),
+  mongoose = require('mongoose'),
+  passport = require('passport'),
+  flash = require('connect-flash'),
+  cookieParser = require('cookie-parser'),
+  session = require('express-session')
+  app = express(),
+  router = express.Router()
 
-var file = fs.createWriteStream('test.flac', { encoding: 'binary' })
 
-function RecordAudio(callback){
+
+
+// Connexion database
+mongoose.connect('mongodb://test:test@ds161021.mlab.com:61021/todo');
+
+
+var urlencodedParser = bodyParser.urlencoded({
+  extended: false
+});
+
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }))
+
+// parse application/json
+app.use(bodyParser.json())
+
+app.get('/', function(req, res) {
+  res.sendFile(__dirname + '/index.html');
+});
+
+// Templates
+app.set('view engine', 'ejs');
+
+// Fichiers Statiques
+app.use(express.static('./public'));
+
+//Ecoute le port
+app.listen(3000);
+console.log('Listening to port 3000');
+
+
+// Login form
+
+var UserSchema = new mongoose.Schema({
+  type: String,
+  mail: String,
+  fullname: String,
+  password: String
+})
+
+var User = mongoose.model('user', UserSchema);
+
+app.get('/register', function(req, res){
+  res.render('register');
+});
+
+app.post("/new", function(req, res){
+  new User ({
+    type: 'userlogin',
+    mail: req.body.mail,
+    fullname: req.body.fullname,
+    password: req.body.password
+  }).save(function(err, doc){
+    if (err) res.json(err);
+    else res.send('Ok')
+  });
+});
+
+
+//Shéma data
+var todoSchema = new mongoose.Schema({
+  type: String,
+  date: {
+    type: Date,
+    default: Date.now
+  },
+  item: String,
+  aidant: String
+});
+
+
+var Todo = mongoose.model('Todo', todoSchema);
+
+//get, post, delete actions
+app.get('/todo', function(req, res) {
+  Todo.find({}, function(err, data) {
+    if (err) throw err;
+    res.render('todo', {
+      todos: data
+    });
+  });
+});
+
+app.post('/todo', urlencodedParser, function(req, res) {
+  var newTodo = Todo(req.body).save(function(err, data) {
+    if (err) throw err;
+    res.json(data);
+  });
+});
+
+app.delete('/todo/:item', function(req, res) {
+  Todo.find({
+    item: req.params.item.replace(/\-/g, ' ')
+  }).remove(function(err, data) {
+    if (err) throw err;
+    res.json(data);
+  });
+});
+
+
+
+// GESTION VOCALE //
+
+
+var file = fs.createWriteStream('test.flac', {
+  encoding: 'binary'
+})
+
+var transcription
+
+function RecordAudio(callback) {
   record.start({
-    sampleRate : 16000,
+    sampleRate: 22050,
   }).pipe(file)
-  console.log("début enregistrement")
-  setTimeout(function () {
-    record.stop()
-  console.log("Fin enregistrement")
-  }, 5000)
 
-  if (typeof callback == "function")
-		callback()
+  console.log("début enregistrement")
+  setTimeout(function() {
+    record.stop()
+
+    if (typeof callback == "function")
+      callback()
+    console.log("Fin enregistrement")
+  }, 5000)
 }
 
 
-function GoogleSpeechWork(){
+function GoogleSpeechWork() {
   const Speech = require('@google-cloud/speech');
 
 
@@ -38,7 +156,7 @@ function GoogleSpeechWork(){
   const encoding = 'LINEAR16';
 
   // The sample rate of the audio file in hertz, e.g. 16000
-  const sampleRateHertz = 16000;
+  const sampleRateHertz = 22050;
 
   // The BCP-47 language code to use, e.g. 'en-US'
   const languageCode = 'fr-FR';
@@ -52,7 +170,7 @@ function GoogleSpeechWork(){
   // Detects speech in the audio file
   speech.recognize(filename, request)
     .then((results) => {
-      const transcription = results[0];
+      transcription = results[0];
 
       console.log(`Transcription: ${transcription}`);
     })
@@ -61,35 +179,33 @@ function GoogleSpeechWork(){
     });
 }
 
-RecordAudio();
-setTimeout(GoogleSpeechWork,7000)
+function test() {
+  console.log('----------');
+
+  /// Test ///
+  if (transcription.includes('besoin')) {
+    if (transcription.includes('pas')) {
+      console.log('Pas de besoin');
+    } else {
+      var pattern = "de";
+      var need = transcription.substr(transcription.indexOf(pattern) + pattern.length, transcription.length);
+      console.log('Il y a besoin de ' + need);
+      var storage = new Todo;
+      storage.item = 'Monique a besoin de ' + need;
+      storage.save(function(err) {
+        if (err) throw err;
+        console.log('Todo ajoutée')
+      })
 
 
+    }
+  } else {
+    console.log('Pas de besoin');
+  }
+  /// End Test ///
+}
 
-
-// Chargement de la page index.html
-app.get('/', function (req, res) {
-  res.sendfile(__dirname + '/index.html');
-});
-
-
-// io.sockets.on('connection', function (socket, pseudo) {
-//     // Quand un client se connecte, on lui envoie un message
-//     socket.emit('message', 'Vous êtes bien connecté !');
-//     // On signale aux autres clients qu'il y a un nouveau venu
-//     socket.broadcast.emit('message', 'Un autre client vient de se connecter ! ');
-//
-//     // Dès qu'on nous donne un pseudo, on le stocke en variable de session
-//     socket.on('petit_nouveau', function(pseudo) {
-//         socket.pseudo = pseudo;
-//     });
-//
-//     // Dès qu'on reçoit un "message" (clic sur le bouton), on le note dans la console
-//     socket.on('message', function (message) {
-//         // On récupère le pseudo de celui qui a cliqué dans les variables de session
-//         console.log(socket.pseudo + ' me parle ! Il me dit : ' + message);
-//     });
-// });
-
-
-server.listen(8080);
+function Speech() {
+  RecordAudio(GoogleSpeechWork);
+  setTimeout(test, 10000)
+}

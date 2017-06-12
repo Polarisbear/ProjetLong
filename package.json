@@ -8,12 +8,20 @@
   },
   "author": "",
   "dependencies": {
+    "body-parser": "^1.17.2",
+    "connect-flash": "^0.1.1",
+    "cookie-parser": "^1.4.3",
+    "ejs": "^2.5.6",
     "express": "^4.15.3",
+    "express-session": "^1.15.3",
+    "fs": "0.0.1-security",
     "google-cloud": "^0.54.0",
     "http": "0.0.0",
     "lame": "^1.2.4",
+    "mongoose": "^4.10.4",
     "node-lame": "^1.0.4",
     "node-record-lpcm16": "^0.3.0",
+    "passport": "^0.3.2",
     "socket.io": "^2.0.1"
   },
   "license": "ISC"
