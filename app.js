@@ -12,7 +12,8 @@ var express = require('express'),
   cookieParser = require('cookie-parser'),
   session = require('express-session')
   app = express(),
-  router = express.Router()
+  router = express.Router(),
+  io_2 = require('socket.io')(8080)
 
 
 
@@ -213,3 +214,18 @@ function Speech() {
   RecordAudio(GoogleSpeechWork);
   setTimeout(test, 10000)
 }
+
+// Socket //
+
+io_2.on('connection', function (socket) {
+  console.log('listening socket')
+  io_2.emit('this', { will: 'be received by everyone'});
+
+  socket.on('private message', function () {
+    console.log('I received a private message');
+  });
+
+  socket.on('disconnect', function () {
+    io_2.emit('user disconnected');
+  });
+});
