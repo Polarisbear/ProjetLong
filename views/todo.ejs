@@ -7,6 +7,7 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
   <link rel="stylesheet" href="/assets/style.css" type="text/css">
   <script type="text/javascript" src="/assets/to-do.js"></script>
+  <script type="text/javascript" src="/assets/notifications.js"></script>
 </head>
 
 <body>
@@ -18,8 +19,12 @@
 
     <ul>
       <% for(var i=0; i < todos.length; i++) {%>
-        <li>
-          <%=todos[i].item %>
+        <li data-id = <%=todos[i]._id %>>
+          <div class="container">
+            <h1>Monique</h1>
+            <p class="description"><%=todos[i].item %></p>
+            <p class="time"><%=todos[i].date %></p>
+          </div>
         </li>
         <% } %>
     </ul>

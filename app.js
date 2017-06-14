@@ -17,6 +17,9 @@ var express = require('express'),
 
 
 
+
+
+
 // Connexion database
 mongoose.connect('mongodb://test:test@ds161021.mlab.com:61021/todo');
 
@@ -105,9 +108,9 @@ app.post('/todo', urlencodedParser, function(req, res) {
   });
 });
 
-app.delete('/todo/:item', function(req, res) {
-  Todo.find({
-    item: req.params.item.replace(/\-/g, ' ')
+app.delete('/todo/:id', function(req, res) {
+  Todo.findOne({
+    _id: req.params.id
   }).remove(function(err, data) {
     if (err) throw err;
     res.json(data);
@@ -195,6 +198,7 @@ function test() {
       storage.save(function(err) {
         if (err) throw err;
         console.log('Todo ajoutée')
+
       })
 
 
