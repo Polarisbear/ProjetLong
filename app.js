@@ -1,7 +1,7 @@
 var express = require('express'),
   bodyParser = require('body-parser'),
   server = require('http').createServer(express),
-  io = require('socket.io').listen(server),
+  io = require('socket.io')(server),
   fs = require('fs'),
   http = require('http'),
   record = require('node-record-lpcm16'),
@@ -13,7 +13,7 @@ var express = require('express'),
   session = require('express-session')
   app = express(),
   router = express.Router(),
-  io_2 = require('socket.io')(8080)
+  gpio = require('onoff').Gpio
 
 
 
@@ -127,6 +127,10 @@ var file = fs.createWriteStream('test.flac', {
   encoding: 'binary'
 })
 
+file.on('finish', function() {
+	console.log('fs finish')
+	})
+
 var transcription
 
 function RecordAudio(callback) {
@@ -175,7 +179,7 @@ function GoogleSpeechWork() {
   speech.recognize(filename, request)
     .then((results) => {
       transcription = results[0];
-
+ 
       console.log(`Transcription: ${transcription}`);
     })
     .catch((err) => {
@@ -185,7 +189,8 @@ function GoogleSpeechWork() {
 
 function test() {
   console.log('----------');
-
+  console.log('')
+  led.write(0)
   /// Test ///
   if (transcription.includes('besoin')) {
     if (transcription.includes('pas')) {
@@ -211,21 +216,21 @@ function test() {
 }
 
 function Speech() {
+	led.write(1)
   RecordAudio(GoogleSpeechWork);
-  setTimeout(test, 10000)
+  setTimeout(test, 15000)
 }
 
-// Socket //
-
-io_2.on('connection', function (socket) {
-  console.log('listening socket')
-  io_2.emit('this', { will: 'be received by everyone'});
-
-  socket.on('private message', function () {
-    console.log('I received a private message');
-  });
-
-  socket.on('disconnect', function () {
-    io_2.emit('user disconnected');
-  });
-});
+button = new gpio(21, 'in', 'both')
+led = new gpio(26, 'out')
+button.watch(function(err, value) {
+	if (err) { throw err}
+	console.log(value)
+	
+	if (value == 1) {
+		
+		var transcription
+		Speech()
+	} 
+	
+	})
