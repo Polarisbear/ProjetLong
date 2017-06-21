@@ -22,7 +22,7 @@ var express = require('express'),
 
 
 // Connexion database
-mongoose.connect('mongodb://test:test@ds161021.mlab.com:61021/todo');
+mongoose.connect('nothing to see here');
 
 
 var urlencodedParser = bodyParser.urlencoded({
